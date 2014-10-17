@@ -8,6 +8,7 @@ import javax.microedition.midlet.MIDlet;
 import javax.microedition.midlet.MIDletStateChangeException;
 import jdk.dio.DeviceDescriptor;
 import jdk.dio.DeviceManager;
+import jdk.dio.gpio.GPIOPin;
 import jdk.dio.i2cbus.I2CDevice;
 import jdk.dio.i2cbus.I2CDeviceConfig;
 
@@ -47,12 +48,22 @@ public class K64Test extends MIDlet {
     @Override
     protected void startApp() throws MIDletStateChangeException {
         I2CDevice accel = null;
+        GPIOPin led = null;
+        
         try {
             accel = DeviceManager.open(300, I2CDevice.class); //  ID from document http://docs.oracle.com/javame/8.1/get-started-freescale-k64/dio-devices.htm
+            led = DeviceManager.open(3);
+           /* Iterator l = DeviceManager.list();
+            while(l.hasNext())
+            {
+                DeviceDescriptor d = (DeviceDescriptor) l.next();
+                System.out.println(d.getName()+"; "+d.getID()+"; "+d.getConfiguration());
+            }
+            */
             DeviceDescriptor dd = accel.getDescriptor();
             I2CDeviceConfig dc = (I2CDeviceConfig) dd.getConfiguration();
 
-            System.out.println("Name: " + dd.getName() + "; Freq: " + dc.getClockFrequency() + "; Address: " + dc.getAddress());
+            //System.out.println("Name: " + dd.getName() + "; Freq: " + dc.getClockFrequency() + "; Address: " + dc.getAddress());
             int rezult = 0;
             ByteBuffer bb = ByteBuffer.allocateDirect(1);
 
@@ -71,8 +82,8 @@ public class K64Test extends MIDlet {
 
             while (!isStopped) {
                 
-                for (int i = 0; i < accelRegisters.length; i++)
-                {
+                mainCycle:for (int i = 0; i < accelRegisters.length; i++)
+                {                    
                     positionChanged = false;
                     accel.begin();   //System.out.print("Reading... "); 
                     accel.read(accelRegisters[i], 1, bb);
@@ -81,13 +92,21 @@ public class K64Test extends MIDlet {
                     if( java.lang.Math.abs(accelValues[i]-bb.get(0))>threshold)
                     {
                        positionChanged = true;
-                       System.out.print(accelValues[i]+": "+ bb.get(0));
+                       
+                       continue mainCycle;
+                      // System.out.print(accelValues[i]+": "+ bb.get(0));
                     }
-                    
+                    else
+                    {
+                         positionChanged = false;
+                    }
+                     
+                    led.setValue(positionChanged);
                     accelValues[i]=bb.get(0);
                     bb.rewind();
                 }
-                System.out.println(" Lol");
+                
+                //System.out.println(" Lol");
 
                 /*accel.begin();   //System.out.print("Reading... "); 
                 accel.read(0x01, 1, bb);
@@ -138,6 +157,7 @@ public class K64Test extends MIDlet {
         } finally {
             try {
                 accel.close();
+                led.close();
             } catch (IOException ex) {
                 Logger.getLogger(K64Test.class.getName()).log(Level.SEVERE, null, ex);
             }
