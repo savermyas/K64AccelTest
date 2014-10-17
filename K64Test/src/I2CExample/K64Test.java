@@ -18,28 +18,25 @@ import jdk.dio.i2cbus.I2CDeviceConfig;
  */
 public class K64Test extends MIDlet {
 
-    boolean isStopped = false;
-    boolean positionChanged = false;
-    byte threshold = 5;
-    final long timeout = 500;
+    static boolean isStopped = false;
+    
 
-    final byte FXOS8700Q_STATUS = 0x00;
-    final byte FXOS8700Q_OUT_X_MSB = 0x01;
-    final byte FXOS8700Q_OUT_Y_MSB = 0x03;
-    final byte FXOS8700Q_OUT_Z_MSB = 0x05;
-    final byte FXOS8700Q_M_OUT_X_MSB = 0x33;
-    final byte FXOS8700Q_M_OUT_Y_MSB = 0x35;
-    final byte FXOS8700Q_M_OUT_Z_MSB = 0x37;
-    final byte FXOS8700Q_WHOAMI = 0x0D;
-    final byte FXOS8700Q_XYZ_DATA_CFG = 0x0E;
-    final byte FXOS8700Q_CTRL_REG1 = 0x2A;
-    final byte FXOS8700Q_M_CTRL_REG1 = 0x5B;
-    final byte FXOS8700Q_M_CTRL_REG2 = 0x5C;
-     
-    final byte[] accelRegisters = {FXOS8700Q_OUT_X_MSB, FXOS8700Q_OUT_Y_MSB, FXOS8700Q_OUT_Z_MSB, FXOS8700Q_M_OUT_X_MSB, FXOS8700Q_M_OUT_Y_MSB, FXOS8700Q_M_OUT_Z_MSB};
-    final byte[] accelValues = new byte[6];
+    final static byte FXOS8700Q_STATUS = 0x00;
+    final static byte FXOS8700Q_OUT_X_MSB = 0x01;
+    final static byte FXOS8700Q_OUT_Y_MSB = 0x03;
+    final static byte FXOS8700Q_OUT_Z_MSB = 0x05;
+    final static byte FXOS8700Q_M_OUT_X_MSB = 0x33;
+    final static byte FXOS8700Q_M_OUT_Y_MSB = 0x35;
+    final static byte FXOS8700Q_M_OUT_Z_MSB = 0x37;
+    final static byte FXOS8700Q_WHOAMI = 0x0D;
+    final static byte FXOS8700Q_XYZ_DATA_CFG = 0x0E;
+    final static byte FXOS8700Q_CTRL_REG1 = 0x2A;
+    final static byte FXOS8700Q_M_CTRL_REG1 = 0x5B;
+    final static byte FXOS8700Q_M_CTRL_REG2 = 0x5C;
+
+   
     // byte reg0x01, reg0x03, reg0x05, reg0x33, reg0x35, reg0x37;
-  
+
     @Override
     protected void destroyApp(boolean bln) throws MIDletStateChangeException {
         isStopped = true;
@@ -49,23 +46,14 @@ public class K64Test extends MIDlet {
     protected void startApp() throws MIDletStateChangeException {
         I2CDevice accel = null;
         GPIOPin led = null;
-        
+
         try {
             accel = DeviceManager.open(300, I2CDevice.class); //  ID from document http://docs.oracle.com/javame/8.1/get-started-freescale-k64/dio-devices.htm
-            
-           /* Iterator l = DeviceManager.list();
-            while(l.hasNext())
-            {
-                DeviceDescriptor d = (DeviceDescriptor) l.next();
-                System.out.println(d.getName()+"; "+d.getID()+"; "+d.getConfiguration());
-            }
-            */
-            DeviceDescriptor dd = accel.getDescriptor();
-            I2CDeviceConfig dc = (I2CDeviceConfig) dd.getConfiguration();
 
+            //DeviceDescriptor dd = accel.getDescriptor();
+            //I2CDeviceConfig dc = (I2CDeviceConfig) dd.getConfiguration();
             //System.out.println("Name: " + dd.getName() + "; Freq: " + dc.getClockFrequency() + "; Address: " + dc.getAddress());
-            int rezult = 0;
-            ByteBuffer bb = ByteBuffer.allocateDirect(1);
+           
 
             //preparation
             accel.begin();
@@ -79,43 +67,11 @@ public class K64Test extends MIDlet {
             accel.begin();
             accel.write(FXOS8700Q_CTRL_REG1, 1, ByteBuffer.wrap(new byte[]{0x01}));
             accel.end();
+            
+            AccelWorkThread t = new AccelWorkThread();
+            t.setAccel(accel);
+            new Thread(t).start();
 
-            mainCycle:while (!isStopped) {
-                
-                for (int i = 0; i < accelRegisters.length; i++)
-                {                    
-                    positionChanged = false;
-                    accel.begin();   //System.out.print("Reading... "); 
-                    accel.read(accelRegisters[i], 1, bb);
-                    accel.end();
-                   
-                    if( java.lang.Math.abs(accelValues[i]-bb.get(0))>threshold)
-                    {
-                       positionChanged = true;
-                      // System.out.print(accelValues[i]+": "+ bb.get(0));
-                       //continue mainCycle;
-                       
-                    }
-                    else
-                    {
-                         positionChanged = false;
-                    }
-                    
-                   
-                    accelValues[i]=bb.get(0);
-                    bb.rewind();
-                }
-                led = DeviceManager.open(3, GPIOPin.class);
-                     
-                    led.setValue(positionChanged);
-                    led.close();
-               
-                try {
-                    Thread.sleep(timeout);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(K64Test.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
 
         } catch (IOException ex) {
             Logger.getLogger(K64Test.class.getName()).log(Level.SEVERE, null, ex);
