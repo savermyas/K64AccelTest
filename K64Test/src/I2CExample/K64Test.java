@@ -52,7 +52,7 @@ public class K64Test extends MIDlet {
         
         try {
             accel = DeviceManager.open(300, I2CDevice.class); //  ID from document http://docs.oracle.com/javame/8.1/get-started-freescale-k64/dio-devices.htm
-            led = DeviceManager.open(3);
+            
            /* Iterator l = DeviceManager.list();
             while(l.hasNext())
             {
@@ -80,9 +80,9 @@ public class K64Test extends MIDlet {
             accel.write(FXOS8700Q_CTRL_REG1, 1, ByteBuffer.wrap(new byte[]{0x01}));
             accel.end();
 
-            while (!isStopped) {
+            mainCycle:while (!isStopped) {
                 
-                mainCycle:for (int i = 0; i < accelRegisters.length; i++)
+                for (int i = 0; i < accelRegisters.length; i++)
                 {                    
                     positionChanged = false;
                     accel.begin();   //System.out.print("Reading... "); 
@@ -92,59 +92,24 @@ public class K64Test extends MIDlet {
                     if( java.lang.Math.abs(accelValues[i]-bb.get(0))>threshold)
                     {
                        positionChanged = true;
-                       
-                       continue mainCycle;
                       // System.out.print(accelValues[i]+": "+ bb.get(0));
+                       //continue mainCycle;
+                       
                     }
                     else
                     {
                          positionChanged = false;
                     }
-                     
-                    led.setValue(positionChanged);
+                    
+                   
                     accelValues[i]=bb.get(0);
                     bb.rewind();
                 }
-                
-                //System.out.println(" Lol");
-
-                /*accel.begin();   //System.out.print("Reading... "); 
-                accel.read(0x01, 1, bb);
-                accel.end();
-                reg0x01 = bb.get(0);
-                //System.out.print("0x01: " + bb.get(0));
-                bb.rewind();
-
-                accel.begin();   //System.out.print("Reading... "); 
-                accel.read(0x03, 1, bb);
-                accel.end();
-                System.out.print("; 0x03: " + bb.get(0));
-                bb.rewind();
-
-                accel.begin();   //System.out.print("Reading... "); 
-                accel.read(0x05, 1, bb);
-                accel.end();
-                System.out.print("; 0x05: " + bb.get(0));
-                bb.rewind();
-
-                accel.begin();   //System.out.print("Reading... "); 
-                accel.read(0x33, 1, bb);
-                accel.end();
-                System.out.print("; 0x33: " + bb.get(0));
-                bb.rewind();
-
-                accel.begin();   //System.out.print("Reading... "); 
-                accel.read(0x35, 1, bb);
-                accel.end();
-                System.out.print("; 0x35: " + bb.get(0));
-                bb.rewind();
-
-                accel.begin();   //System.out.print("Reading... "); 
-                accel.read(0x37, 1, bb);
-                accel.end();
-                System.out.println("; 0x37: " + bb.get(0));
-                bb.rewind();*/
-
+                led = DeviceManager.open(3, GPIOPin.class);
+                     
+                    led.setValue(positionChanged);
+                    led.close();
+               
                 try {
                     Thread.sleep(timeout);
                 } catch (InterruptedException ex) {
